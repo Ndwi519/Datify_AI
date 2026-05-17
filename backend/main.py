@@ -15,12 +15,10 @@ from database import SessionLocal, User, Conversation, Base, engine
 from sqlalchemy.orm import Session
 import json
 
-# Create tables if they don't exist
 Base.metadata.create_all(bind=engine)
 app = FastAPI(title="AI Ask Your Dataset API")
 app.include_router(auth_router)
 
-# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Adjust this in production
@@ -50,7 +48,6 @@ async def upload_datasets(files: List[UploadFile] = File(...)):
             os.makedirs(UPLOAD_DIR, exist_ok=True)
 
         
-        # 1. Validate schemas
         if not files:
             raise HTTPException(status_code=400, detail="No files provided.")
             
@@ -86,22 +83,18 @@ async def upload_datasets(files: List[UploadFile] = File(...)):
                     raise e
             await file.seek(0)
             
-        # 2. Process all uploaded files
             
         for file in files:
             file_path = os.path.join(UPLOAD_DIR, file.filename)
             with open(file_path, "wb") as buffer:
                 buffer.write(await file.read())
 
-        # 3. Process and index
-        # Reset current pandas cache first
         process_uploaded_files(UPLOAD_DIR, clear=True)
         success, message = process_uploaded_files(UPLOAD_DIR)
         
         if not success:
             raise HTTPException(status_code=400, detail=message)
         
-        # When uploaded successfully, index the columns in the vector store
         df = get_merged_dataframe(UPLOAD_DIR)
         if df is not None:
             index_columns(df.columns.tolist())
@@ -140,17 +133,13 @@ async def ask_question(
         raise HTTPException(status_code=400, detail="No dataset available. Please upload datasets first.")
 
     try:
-        # 1. Retrieve relevant columns via vector search
         relevant_columns = search_columns(question, top_k=5)
 
-        # 2. Extract column metadata for LLM context
         from dataset_manager import get_column_metadata
         column_metadata = get_column_metadata(df)
         
-        # 3. Get LLM instructions for multiple chart recommendations
         llm_response = generate_chart_instructions(question, df.columns.tolist(), list(relevant_columns.keys()), column_metadata)
         
-        # 3. Execute Pandas Operations and map to Chart Data for EACH recommendation
         charts = []
         for config in llm_response:
             try:
@@ -163,11 +152,8 @@ async def ask_question(
             except Exception as e:
                 print(f"Failed to generate data for chart {config.get('chart_type')}: {e}")
 
-        # 4. Generate statistical summary (using the first recommendation as focus)
         summary_table = compute_statistical_summary(df, llm_response[0])
         
-        # 5. Generate rich insights using the summary AND history
-        # Fetch last 5 conversations for context
         history = db.query(Conversation).filter(Conversation.user_id == current_user.id).order_by(Conversation.timestamp.desc()).limit(5).all()
         history_text = ""
         for c in reversed(history):
@@ -179,7 +165,6 @@ async def ask_question(
         
         insights = generate_insights(question, df.columns.tolist(), summary_table, history_context=history_text)
         
-        # 6. Save to history (Saving the full executed charts list)
         new_conv = Conversation(
             user_id=current_user.id,
             question=question,
@@ -290,7 +275,6 @@ async def clear_datasets():
         if os.path.exists(UPLOAD_DIR):
             shutil.rmtree(UPLOAD_DIR)
             os.makedirs(UPLOAD_DIR)
-        # Clear merged data cache
         process_uploaded_files(UPLOAD_DIR, clear=True)
         return {"message": "All datasets cleared."}
     except Exception as e:
@@ -305,7 +289,6 @@ async def delete_dataset(filename: str):
         file_path = os.path.join(UPLOAD_DIR, filename)
         if os.path.exists(file_path):
             os.remove(file_path)
-            # Rebuild cache with remaining files
             process_uploaded_files(UPLOAD_DIR, clear=True)
             success, msg = process_uploaded_files(UPLOAD_DIR)
             return {"message": f"Dataset '{filename}' deleted.", "cache_rebuilt": success}

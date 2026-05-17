@@ -21,22 +21,17 @@ def generate_pdf_report(request_data) -> str:
     subtitle_style = styles['Heading2']
     normal_style = styles['Normal']
     
-    # List of Flowable objects
     story = []
     
-    # Title
     story.append(Paragraph("AI Data Analytics Report", title_style))
     story.append(Spacer(1, 12))
     
-    # Question
     story.append(Paragraph("User Query:", subtitle_style))
     story.append(Paragraph(request_data.question, normal_style))
     story.append(Spacer(1, 12))
     
-    # Explanation / Insights
     story.append(Paragraph("AI Analysis & Insights:", subtitle_style))
     
-    # Split explanation by newlines and add as separate paragraphs
     if request_data.explanation:
         paragraphs = request_data.explanation.split('\n')
         for p in paragraphs:
@@ -46,10 +41,8 @@ def generate_pdf_report(request_data) -> str:
     
     story.append(Spacer(1, 16))
     
-    # Base64 Image handling
     if request_data.chart_image_base64:
         try:
-            # Strip data:image/png;base64, prefix if present
             base64_str = request_data.chart_image_base64
             if "," in base64_str:
                 base64_str = base64_str.split(",")[1]
@@ -57,14 +50,11 @@ def generate_pdf_report(request_data) -> str:
             img_data = base64.b64decode(base64_str)
             img_buffer = BytesIO(img_data)
             
-            # Need to open with PIL to get aspect ratio so we can resize sensibly
             with PILImage.open(img_buffer) as pil_img:
                 width, height = pil_img.size
                 
-            # Create a reportlab Image
             img_buffer.seek(0)
             
-            # Scale to fit letter page width (~600 pts)
             target_width = 450
             ratio = target_width / max(width, 1)
             target_height = height * ratio

@@ -30,7 +30,6 @@ const Signup = ({ onLogin }) => {
         email: form.email,
         password: form.password
       });
-      // Auto-login after signup
       const params = new URLSearchParams();
       params.append('username', form.email);
       params.append('password', form.password);

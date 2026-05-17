@@ -9,8 +9,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Setup Groq Client
-# Ensure GROQ_API_KEY environment variable is set
 api_key = os.environ.get("GROQ_API_KEY")
 
 class ChartInstructions(BaseModel):

@@ -10,7 +10,6 @@ def get_merged_dataframe(upload_dir: str) -> Optional[pd.DataFrame]:
     if _merged_df_cache is not None:
         return _merged_df_cache
     
-    # Try to load if cache is empty but files exist
     process_uploaded_files(upload_dir)
     return _merged_df_cache
 
@@ -38,27 +37,20 @@ def process_uploaded_files(upload_dir: str, clear: bool = False) -> Tuple[bool, 
     for file in csv_files:
         file_path = os.path.join(upload_dir, file)
         try:
-            # 1. Delimiter Detection
             with open(file_path, 'r', encoding='utf-8') as f:
                 sample = f.read(1024)
                 dialect = csv.Sniffer().sniff(sample)
                 df = pd.read_csv(file_path, sep=dialect.delimiter)
             
-            # Index columns for vector search
-            # We skip columns that are completely empty or look like indexes
             valid_cols = [c for c in df.columns if "Unnamed" not in str(c)]
-            # ... store or process items here
             print(f"Loaded {file} with {len(df)} rows and {len(df.columns)} columns (Sep: {dialect.delimiter})")
             
-            # Add dataset_source column based on filename
             df['dataset_source'] = os.path.splitext(file)[0]
             dataframes.append(df)
             
         except Exception as e:
-            # Fallback for complex files
             try:
                 df = pd.read_csv(file_path)
-                # Add dataset_source column based on filename
                 df['dataset_source'] = os.path.splitext(file)[0]
                 dataframes.append(df)
             except:
@@ -75,8 +67,6 @@ def get_merged_dataset_preview(upload_dir: str, sample_size: int = 10) -> Option
     if df is None or df.empty:
         return None
     
-    # Convert to JSON serializable dictionary by replacing Inf and NaN with None (null in JSON)
-    # We cast to object to ensure None is preserved and not converted back to NaN by pandas numeric dtypes
     n_sample = min(sample_size, len(df))
     df_preview = df.sample(n=n_sample).replace([float('inf'), float('-inf')], None).astype(object).where(pd.notnull(df), None)
     return {
@@ -90,7 +80,6 @@ def get_column_metadata(df: pd.DataFrame) -> List[Dict[str, Any]]:
         dtype = str(df[col].dtype)
         nunique = int(df[col].nunique())
         
-        # Get a sample of unique values for context
         sample_values = df[col].dropna().unique()[:5].tolist()
         
         info = {
@@ -100,7 +89,6 @@ def get_column_metadata(df: pd.DataFrame) -> List[Dict[str, Any]]:
             "sample_values": sample_values
         }
         
-        # Add min/max for numeric columns
         if info["type"] == "numeric":
             info["min"] = float(df[col].min()) if not pd.isna(df[col].min()) else None
             info["max"] = float(df[col].max()) if not pd.isna(df[col].max()) else None

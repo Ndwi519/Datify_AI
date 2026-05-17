@@ -91,7 +91,6 @@
     background-color: rgba(99, 102, 241, 0.3); /* indigo-500/30 */
   }
 
-  /* Aero Animations */
   @keyframes spin-slow {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }

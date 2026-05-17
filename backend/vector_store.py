@@ -3,10 +3,8 @@ import faiss
 from sentence_transformers import SentenceTransformer
 from typing import List, Dict
 
-# Initialize SentenceTransformer model (CPU only as required)
 model = SentenceTransformer("all-MiniLM-L6-v2", device='cpu')
 
-# FAISS variables
 _index = None
 _column_names = []
 
@@ -20,7 +18,6 @@ def index_columns(columns: List[str]):
     embeddings = model.encode(columns, convert_to_numpy=True)
     embeddings = embeddings.astype('float32')
     
-    # Create FAISS Flat L2 index
     dimension = embeddings.shape[1]
     _index = faiss.IndexFlatL2(dimension)
     _index.add(embeddings)

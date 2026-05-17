@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session
 
 from database import SessionLocal, User, Base, engine
 
-# Create tables
 Base.metadata.create_all(bind=engine)
 
 SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "change-me-to-a-secret-key-in-production")
@@ -22,7 +21,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# ---- Dependency ----
 
 def get_db():
     db = SessionLocal()
@@ -31,7 +29,6 @@ def get_db():
     finally:
         db.close()
 
-# ---- Schemas ----
 
 class SignupRequest(BaseModel):
     name: str
@@ -55,7 +52,6 @@ class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
 
-# ---- Helpers ----
 
 def verify_password(plain: str, hashed: str) -> bool:
     try:
@@ -96,7 +92,6 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     return user
 
-# ---- Routes ----
 
 @router.post("/signup", status_code=201)
 def signup(data: SignupRequest, db: Session = Depends(get_db)):
