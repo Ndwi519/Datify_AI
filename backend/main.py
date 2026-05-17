@@ -30,6 +30,11 @@ app.add_middleware(
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+@app.on_event("startup")
+async def startup_event():
+    df = get_merged_dataframe(UPLOAD_DIR)
+    if df is not None and not df.empty:
+        index_columns(df.columns.tolist())
 
 class AskRequest(BaseModel):
     question: str
@@ -81,6 +86,7 @@ async def upload_datasets(files: List[UploadFile] = File(...)):
             except Exception as e:
                 if isinstance(e, HTTPException):
                     raise e
+                raise HTTPException(status_code=400, detail=f"Failed to process '{file.filename}': {str(e)}")
             await file.seek(0)
             
             
@@ -198,7 +204,7 @@ async def analyze_direct(
         raise HTTPException(status_code=400, detail="No dataset available.")
 
     try:
-        config = request.dict()
+        config = request.model_dump() if hasattr(request, "model_dump") else request.dict()
         chart_data = execute_pandas_operations(df, config)
         
         chart_obj = {
@@ -223,13 +229,19 @@ async def get_history(
     current_user: User = Depends(get_current_user)
 ):
     history = db.query(Conversation).filter(Conversation.user_id == current_user.id).order_by(Conversation.timestamp.desc()).limit(5).all()
-    return [{
-        "id": c.id,
-        "question": c.question,
-        "answer": json.loads(c.answer),
-        "chart_config": json.loads(c.chart_config),
-        "timestamp": c.timestamp.isoformat()
-    } for c in history]
+    results = []
+    for c in history:
+        try:
+            results.append({
+                "id": c.id,
+                "question": c.question,
+                "answer": json.loads(c.answer) if c.answer else {},
+                "chart_config": json.loads(c.chart_config) if c.chart_config else [],
+                "timestamp": c.timestamp.isoformat()
+            })
+        except Exception:
+            continue
+    return results
 
 @app.delete("/history")
 async def clear_history(
@@ -276,6 +288,7 @@ async def clear_datasets():
             shutil.rmtree(UPLOAD_DIR)
             os.makedirs(UPLOAD_DIR)
         process_uploaded_files(UPLOAD_DIR, clear=True)
+        index_columns([])
         return {"message": "All datasets cleared."}
     except Exception as e:
          raise HTTPException(status_code=500, detail=str(e))
@@ -291,6 +304,13 @@ async def delete_dataset(filename: str):
             os.remove(file_path)
             process_uploaded_files(UPLOAD_DIR, clear=True)
             success, msg = process_uploaded_files(UPLOAD_DIR)
+            
+            df = get_merged_dataframe(UPLOAD_DIR)
+            if df is not None and not df.empty:
+                index_columns(df.columns.tolist())
+            else:
+                index_columns([])
+                
             return {"message": f"Dataset '{filename}' deleted.", "cache_rebuilt": success}
         else:
             raise HTTPException(status_code=404, detail="Dataset not found.")

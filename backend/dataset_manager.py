@@ -43,6 +43,7 @@ def process_uploaded_files(upload_dir: str, clear: bool = False) -> Tuple[bool, 
                 df = pd.read_csv(file_path, sep=dialect.delimiter)
             
             valid_cols = [c for c in df.columns if "Unnamed" not in str(c)]
+            df = df[valid_cols]
             print(f"Loaded {file} with {len(df)} rows and {len(df.columns)} columns (Sep: {dialect.delimiter})")
             
             df['dataset_source'] = os.path.splitext(file)[0]
@@ -51,6 +52,8 @@ def process_uploaded_files(upload_dir: str, clear: bool = False) -> Tuple[bool, 
         except Exception as e:
             try:
                 df = pd.read_csv(file_path)
+                valid_cols = [c for c in df.columns if "Unnamed" not in str(c)]
+                df = df[valid_cols]
                 df['dataset_source'] = os.path.splitext(file)[0]
                 dataframes.append(df)
             except:
