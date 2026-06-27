@@ -63,35 +63,11 @@ The exported datasets are compatible with:
 
 ---
 
-#  Application Screenshots
-
-## Dashboard
-
-> *(Add screenshot here)*
-
-```text
-docs/dashboard.png
-```
-
----
-
-## Business Intelligence Module
-
-> *(Add screenshot here)*
-
-```text
-docs/business_intelligence.png
-```
-
----
+#  Power BI Screenshot
 
 ## Power BI Dashboard
 
-> *(Add after creating the dashboard in Power BI Desktop)*
-
-```text
-powerbi/dashboard.png
-```
+![Datify AI Dashboard](powerbi/dashboard.png)
 
 ---
 
