@@ -1,258 +1,126 @@
-#  Datify AI – AI-Powered Business Intelligence & Analytics Platform
+# AI Ask Your Dataset
 
-Datify AI is an AI-powered analytics platform that transforms structured datasets into actionable business insights using natural language queries, automated visualizations, analytics summaries, PDF reports, and Business Intelligence-ready exports compatible with Microsoft Power BI Desktop, Microsoft Excel, Tableau, and Python.
+A modern, complete AI-powered data analytics web application built with React, FastAPI, Pandas, and Llama 3 on Groq.
 
----
+## Features
 
-#  Features
+- **Multi Dataset Upload**: Upload multiple identical-schema CSV files. The app validates and merges them, adding a `dataset_source` column.
+- **Natural Language Analytics**: Ask questions in plain English (e.g., "Which region generated the highest revenue?").
+- **Automatic Visualizations**: Dynamic generation of Bar, Line, and Pie charts using Recharts based on LLM outputs and Pandas aggregations.
+- **AI Insights**: Get text-based explanations of the generated analytical data.
+- **Dashboard UI**: Clean, responsive layout using TailwindCSS.
+- **AI-Generated Report**: Download analytical reports in PDF format containing questions, insights, and charts.
 
-*  AI-powered Natural Language Analytics using Llama 3 (Groq)
-*  Multi-dataset CSV upload with automatic schema validation
-*  Intelligent dataset merging with source tracking
-*  Automatic interactive visualizations (Bar, Line, Pie Charts)
-*  Business Intelligence dashboard with dataset quality overview
-*  Analytics Summary generation
-*  Power BI-compatible dataset export
-*  AI-generated PDF analytical reports
-*  Fast REST APIs built with FastAPI
-*  Modern responsive UI built with React & Tailwind CSS
+## Project Structure
 
----
+- `/backend`: Python FastAPI logic, dataset processing, Llama 3 prompt mechanics.
+- `/frontend`: React + Vite frontend code.
+- `/uploads`: Temporary directory to store CSV datasets locally before merging.
+- `/reports`: Temporary directory storing generated PDF reports.
 
-#  Business Intelligence Workflow
+## Prerequisites
 
-```text
+- [Python 3.9+](https://www.python.org/downloads/)
+- [Node.js 18+](https://nodejs.org/)
+- [Groq API Key](https://console.groq.com/keys) (Free)
+
+## Setup and Running
+
+### 1. Backend
+
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Create and activate a Virtual Environment (Optional but recommended):
+   ```bash
+   python -m venv venv
+   # On Windows
+   venv\Scripts\activate
+   # On Mac/Linux
+   source venv/bin/activate
+   ```
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Set your Groq API Key:
+   ```bash
+   # On Windows (Command Prompt)
+   set GROQ_API_KEY=your_api_key_here
+   # On Windows (PowerShell)
+   $env:GROQ_API_KEY="your_api_key_here"
+   # On Mac/Linux
+   export GROQ_API_KEY="your_api_key_here"
+   ```
+5. Start the FastAPI server (Runs on port 8000 default):
+   ```bash
+   uvicorn main:app --reload
+   ```
+
+### 2. Frontend
+
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+4. Open your browser to the URL shown in the console (Usually `http://localhost:5173`).
+
+## Business Intelligence Workflow
+
 CSV Upload
-      ↓
+↓
 AI Data Cleaning
-      ↓
+↓
 Data Processing
-      ↓
+↓
 Analytics Summary
-      ↓
+↓
 Export Analytics Dataset
-      ↓
-Power BI / Excel / Tableau
-      ↓
+↓
+Microsoft Power BI Desktop
+↓
 Business Insights
-```
 
----
+## Business Intelligence Features
 
-#  Business Intelligence Features
-
-* Dataset Quality Overview
-* Analytics Summary
-* CSV Export
-* Business Intelligence Workflow
-* Power BI-Compatible Dataset Export
+* AI-powered dataset processing
+* Automatic analytics summary
+* Clean analytics dataset export
+* Business Intelligence workflow
+* Power BI-compatible datasets
+* PDF report generation
 * REST APIs
-* AI-generated PDF Reports
 
----
-
-#  Export Compatibility
-
-The exported datasets are compatible with:
+Datify AI exported datasets are fully compatible with:
 
 * Microsoft Power BI Desktop
 * Microsoft Excel
 * Tableau
-* Python (Pandas)
-* SQL-based Analytics Workflows
+* Python
+* SQL workflows
 
----
+## Example Usage
 
-#  Power BI Screenshot
+### Example Datasets
+You can create examples called `sales_2021.csv`, `sales_2022.csv`, and `sales_2023.csv` with columns:
+`Region`, `Country`, `Item Type`, `Units Sold`, `Unit Price`, `Total Revenue`, `Total Profit`, `Order Date`
 
-## Power BI Dashboard
+### Example Questions
+- "Which region has the highest revenue?"
+- "Compare total profit by item type."
+- "Show units sold across all regions."
 
-![Datify AI Dashboard](powerbi/dashboard.png)
+## Stack & Libraries
 
----
-
-#  Project Structure
-
-```text
-Datify_AI/
-│
-├── backend/
-│   ├── main.py
-│   ├── dataset_manager.py
-│   └── ...
-│
-├── frontend/
-│   ├── src/
-│   └── ...
-│
-├── uploads/
-│
-├── reports/
-│
-├── powerbi/
-│   ├── README.md
-│   └── datify_analytics_export.csv
-│
-├── docs/
-│
-└── README.md
-```
-
----
-
-#  Tech Stack
-
-| Layer                 | Technologies                        |
-| --------------------- | ----------------------------------- |
-| Frontend              | React, Vite, Tailwind CSS, Recharts |
-| Backend               | FastAPI, Python                     |
-| AI                    | Groq Llama 3, LangChain, FAISS      |
-| Data Processing       | Pandas, NumPy                       |
-| Machine Learning      | Scikit-learn                        |
-| Business Intelligence | Power BI-Compatible CSV Exports     |
-| Reporting             | ReportLab                           |
-
----
-
-# Prerequisites
-
-* Python 3.9+
-* Node.js 18+
-* Groq API Key
-
----
-
-#  Installation
-
-## 1. Clone the Repository
-
-```bash
-git clone https://github.com/Ndwi519/Datify_AI.git
-cd Datify_AI
-```
-
----
-
-## 2. Backend Setup
-
-```bash
-cd backend
-```
-
-Create Virtual Environment
-
-```bash
-python -m venv venv
-```
-
-Activate
-
-### Windows
-
-```bash
-venv\Scripts\activate
-```
-
-### Linux / macOS
-
-```bash
-source venv/bin/activate
-```
-
-Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-Set Groq API Key
-
-### Windows CMD
-
-```bash
-set GROQ_API_KEY=YOUR_API_KEY
-```
-
-### Windows PowerShell
-
-```powershell
-$env:GROQ_API_KEY="YOUR_API_KEY"
-```
-
-### Linux / macOS
-
-```bash
-export GROQ_API_KEY="YOUR_API_KEY"
-```
-
-Run Backend
-
-```bash
-uvicorn main:app --reload
-```
-
----
-
-## 3. Frontend Setup
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open
-
-```text
-http://localhost:5173
-```
-
----
-
-#  Example Questions
-
-Ask questions like:
-
-* Which region generated the highest revenue?
-* Compare total profit by item type.
-* Show units sold across all regions.
-* Which dataset contains the highest sales?
-* Show monthly revenue trends.
-* Compare profit by country.
-
----
-
-#  Analytics Summary
-
-The Business Intelligence module automatically generates:
-
-* Dataset Name
-* Total Rows
-* Total Columns
-* Missing Values
-* Numeric Features
-* Categorical Features
-* Dataset Quality Status
-* Export Timestamp
-
----
-
-# Report Generation
-
-Datify AI automatically generates professional PDF reports containing:
-
-* User Query
-* AI-generated Insights
-* Charts
-* Analytical Summary
-
----
-
-#  Future Enhancements
-
-* Native Power BI Dashboard Embedding
-* Scheduled Analytics Reports
-* Cloud Deployment
-* Multi-user Collaboration
-* Interactive Dashboard Templates
-
+- **Frontend**: React, Vite, TailwindCSS, Recharts, Lucide React.
+- **Backend**: FastAPI, Pandas, SentenceTransformers `all-MiniLM-L6-v2` (Local CPU embeddings), FAISS CPU, Groq API (Llama 3 8B).
+- **Report Generation**: ReportLab.
