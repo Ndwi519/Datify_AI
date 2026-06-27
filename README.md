@@ -63,9 +63,21 @@ The exported datasets are compatible with:
 
 ---
 
-#  Power BI Screenshot
+#  Application Screenshot
 
-## Power BI Dashboard
+### Application Dashboard
+
+![Application Dashboard](docs/website_dashboard.png)
+
+---
+
+### Business Intelligence Module
+
+![Business Intelligence Module](docs/Business_intelligence.png)
+
+---
+
+### Power BI Dashboard
 
 ![Datify AI Dashboard](powerbi/dashboard.png)
 
@@ -90,7 +102,6 @@ Datify_AI/
 ├── reports/
 │
 ├── powerbi/
-│   ├── README.md
 │   └── datify_analytics_export.csv
 │
 ├── docs/
