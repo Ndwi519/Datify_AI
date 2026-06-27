@@ -56,44 +56,17 @@ async def upload_datasets(files: List[UploadFile] = File(...)):
         if not files:
             raise HTTPException(status_code=400, detail="No files provided.")
             
-        existing_df = get_merged_dataframe(UPLOAD_DIR)
-        existing_cols = None
-        if existing_df is not None and not existing_df.empty:
-            existing_cols = set(existing_df.columns.tolist())
-            if 'dataset_source' in existing_cols:
-                existing_cols.remove('dataset_source')
+        # Clear existing datasets first
+        for filename in os.listdir(UPLOAD_DIR):
+            file_path = os.path.join(UPLOAD_DIR, filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
                 
-        import pandas as pd
-        import io
-        import csv
-        
-        for file in files:
-            content = await file.read()
-            try:
-                sample_text = content[:1024].decode('utf-8', errors='ignore')
-                try:
-                    dialect = csv.Sniffer().sniff(sample_text)
-                    sep = dialect.delimiter
-                except:
-                    sep = ','
-                    
-                df_test = pd.read_csv(io.BytesIO(content), sep=sep, nrows=0)
-                new_cols = set(df_test.columns.tolist())
-                if existing_cols is not None and new_cols != existing_cols:
-                    raise HTTPException(status_code=400, detail=f"Schema mismatch: '{file.filename}' columns do not match existing datasets.")
-                if existing_cols is None:
-                    existing_cols = new_cols
-            except Exception as e:
-                if isinstance(e, HTTPException):
-                    raise e
-                raise HTTPException(status_code=400, detail=f"Failed to process '{file.filename}': {str(e)}")
-            await file.seek(0)
-            
-            
-        for file in files:
-            file_path = os.path.join(UPLOAD_DIR, file.filename)
-            with open(file_path, "wb") as buffer:
-                buffer.write(await file.read())
+        # Only take the first file
+        file = files[0]
+        file_path = os.path.join(UPLOAD_DIR, file.filename)
+        with open(file_path, "wb") as buffer:
+            buffer.write(await file.read())
 
         process_uploaded_files(UPLOAD_DIR, clear=True)
         success, message = process_uploaded_files(UPLOAD_DIR)
@@ -106,6 +79,8 @@ async def upload_datasets(files: List[UploadFile] = File(...)):
             index_columns(df.columns.tolist())
             
         return {"message": f"{len(files)} dataset(s) uploaded and indexed successfully."}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
@@ -316,6 +291,92 @@ async def delete_dataset(filename: str):
             raise HTTPException(status_code=404, detail="Dataset not found.")
     except Exception as e:
          raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/export-analytics")
+async def export_analytics():
+    try:
+        df = get_merged_dataframe(UPLOAD_DIR)
+        if df is None or df.empty:
+            raise HTTPException(status_code=400, detail="No dataset available for export.")
+            
+        # Clean the dataset for BI
+        # Remove duplicate rows
+        clean_df = df.drop_duplicates()
+        
+        # Save to temporary file in exports dir
+        export_dir = "exports"
+        os.makedirs(export_dir, exist_ok=True)
+        export_path = os.path.join(export_dir, "datify_analytics_export.csv")
+        
+        # Export as UTF-8 CSV without index
+        clean_df.to_csv(export_path, index=False, encoding='utf-8')
+        
+        return FileResponse(export_path, media_type='text/csv', filename="datify_analytics_export.csv")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to export analytics: {str(e)}")
+
+@app.get("/analytics-summary")
+async def analytics_summary():
+    import time
+    start_time = time.time()
+    try:
+        df = get_merged_dataframe(UPLOAD_DIR)
+        if df is None or df.empty:
+            raise HTTPException(status_code=400, detail="No dataset available for summary.")
+            
+        clean_df = df.drop_duplicates()
+        
+        from datetime import datetime
+        
+        numeric_cols = clean_df.select_dtypes(include=['number']).columns.tolist()
+        categorical_cols = clean_df.select_dtypes(exclude=['number']).columns.tolist()
+        missing_values = int(clean_df.isnull().sum().sum())
+        
+        total_rows_raw = len(df)
+        total_rows_clean = len(clean_df)
+        duplicate_rows = total_rows_raw - total_rows_clean
+        duplicate_percentage = round((duplicate_rows / total_rows_raw) * 100, 2) if total_rows_raw > 0 else 0
+        total_cells = total_rows_clean * len(clean_df.columns)
+        total_null_percentage = round((missing_values / total_cells) * 100, 2) if total_cells > 0 else 0
+        
+        memory_usage_bytes = clean_df.memory_usage(deep=True).sum()
+        memory_usage_kb = round(memory_usage_bytes / 1024, 2)
+        dataset_size_kb = memory_usage_kb
+        
+        dataset_name = "Merged_Analytics_Dataset"
+        if 'dataset_source' in clean_df.columns and not clean_df['dataset_source'].empty:
+            raw_name = str(clean_df['dataset_source'].iloc[0])
+            # Ensure the dataset name always includes the .csv extension
+            dataset_name = raw_name if raw_name.endswith('.csv') else f"{raw_name}.csv"
+             
+        end_time = time.time()
+        processing_time = round(end_time - start_time, 3)
+             
+        summary = {
+            "Dataset Name": dataset_name,
+            "Total Rows": total_rows_clean,
+            "Total Columns": len(clean_df.columns),
+            "Missing Values": missing_values,
+            "Duplicate Rows": duplicate_rows,
+            "Duplicate Percentage": duplicate_percentage,
+            "Total Null Percentage": total_null_percentage,
+            "Numeric Columns": len(numeric_cols),
+            "Categorical Columns": len(categorical_cols),
+            "Dataset Size (KB)": dataset_size_kb,
+            "Memory Usage (KB)": memory_usage_kb,
+            "Processing Time (seconds)": processing_time,
+            "Processing Status": "Success",
+            "Column Names": clean_df.columns.tolist(),
+            "Numeric Column Names": numeric_cols,
+            "Categorical Column Names": categorical_cols,
+            "Export Timestamp": datetime.now().isoformat(),
+            "generated_by": "Datify AI",
+            "version": "1.0"
+        }
+        
+        return summary
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate analytics summary: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

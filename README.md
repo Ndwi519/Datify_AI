@@ -74,6 +74,40 @@ A modern, complete AI-powered data analytics web application built with React, F
    ```
 4. Open your browser to the URL shown in the console (Usually `http://localhost:5173`).
 
+## Business Intelligence Workflow
+
+CSV Upload
+↓
+AI Data Cleaning
+↓
+Data Processing
+↓
+Analytics Summary
+↓
+Export Analytics Dataset
+↓
+Microsoft Power BI Desktop
+↓
+Business Insights
+
+## Business Intelligence Features
+
+* AI-powered dataset processing
+* Automatic analytics summary
+* Clean analytics dataset export
+* Business Intelligence workflow
+* Power BI-compatible datasets
+* PDF report generation
+* REST APIs
+
+Datify AI exported datasets are fully compatible with:
+
+* Microsoft Power BI Desktop
+* Microsoft Excel
+* Tableau
+* Python
+* SQL workflows
+
 ## Example Usage
 
 ### Example Datasets

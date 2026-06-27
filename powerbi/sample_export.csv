@@ -1,0 +1,5 @@
+customer_id,total_spend,segment,last_purchase_date
+1,150.50,Premium,2023-10-01
+2,45.00,Standard,2023-10-05
+3,300.00,VIP,2023-09-28
+4,12.50,Standard,2023-10-10

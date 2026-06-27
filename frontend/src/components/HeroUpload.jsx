@@ -10,7 +10,7 @@ const HeroUpload = ({ onUpload, isUploading }) => {
       }
     },
     accept: { 'text/csv': ['.csv'] },
-    multiple: true
+    multiple: false
   });
 
   return (

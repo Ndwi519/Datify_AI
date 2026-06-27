@@ -30,8 +30,11 @@ const Dashboard = ({ user, onUserUpdate, onLogout }) => {
   const [isQuerying, setIsQuerying] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [globalError, setGlobalError] = useState('');
+  const [globalSuccess, setGlobalSuccess] = useState('');
   const [lastAnalytics, setLastAnalytics] = useState(null);
   const [history, setHistory] = useState([]);
+  const [analyticsSummary, setAnalyticsSummary] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const fetchPreview = async () => {
     try {
@@ -63,15 +66,26 @@ const Dashboard = ({ user, onUserUpdate, onLogout }) => {
     }
   };
 
+  const fetchAnalyticsSummary = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/analytics-summary`);
+      setAnalyticsSummary(res.data);
+    } catch (err) {
+      console.error('Failed to fetch analytics summary:', err);
+    }
+  };
+
   useEffect(() => {
     fetchDatasets();
     fetchPreview();
     fetchHistory();
+    fetchAnalyticsSummary();
   }, []);
 
   const handleUpload = async (files) => {
     setIsUploading(true);
     setGlobalError('');
+    setGlobalSuccess('');
     const formData = new FormData();
     files.forEach(f => formData.append('files', f));
 
@@ -81,6 +95,7 @@ const Dashboard = ({ user, onUserUpdate, onLogout }) => {
       });
       await fetchDatasets();
       await fetchPreview();
+      await fetchAnalyticsSummary();
     } catch (error) {
       setGlobalError(error.response?.data?.detail || 'Upload failed');
     } finally {
@@ -96,6 +111,7 @@ const Dashboard = ({ user, onUserUpdate, onLogout }) => {
        setChartConfig(null);
        setCharts([]);
        setInsights(null);
+       setAnalyticsSummary(null);
      } catch (err) {
        console.error(err);
      }
@@ -109,8 +125,10 @@ const Dashboard = ({ user, onUserUpdate, onLogout }) => {
       setDatasets(updatedDatasets);
       if (updatedDatasets.length > 0) {
         await fetchPreview();
+        await fetchAnalyticsSummary();
       } else {
         setPreviewData({ columns: [], data: [] });
+        setAnalyticsSummary(null);
       }
     } catch (error) {
       setGlobalError(error.response?.data?.detail || `Failed to delete ${filename}.`);
@@ -242,6 +260,51 @@ const Dashboard = ({ user, onUserUpdate, onLogout }) => {
     }
   };
 
+  const handleExportAnalytics = async () => {
+    setIsExporting(true);
+    setGlobalError('');
+    setGlobalSuccess('');
+    try {
+      const res = await axios.get(`${API_BASE_URL}/export-analytics`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'datify_analytics_export.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      const rows = analyticsSummary?.["Total Rows"] ?? 'N/A';
+      const cols = analyticsSummary?.["Total Columns"] ?? 'N/A';
+      const size = analyticsSummary?.["Dataset Size (KB)"] ?? 'N/A';
+      setGlobalSuccess(`✓ Dataset Exported Successfully\n\nRows: ${rows}\nColumns: ${cols}\nFile Size: ${size} KB\nEncoding: UTF-8\nPower BI Compatible`);
+    } catch (err) {
+      setGlobalError('Failed to export analytics dataset.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDownloadSummary = () => {
+    if (!analyticsSummary) {
+      setGlobalError('No analytics summary available. Please upload a dataset first.');
+      return;
+    }
+    try {
+      const blob = new Blob([JSON.stringify(analyticsSummary, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'analytics_summary.json');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setGlobalError('Failed to download analytics summary.');
+    }
+  };
+
   return (
     <div className="flex h-screen mesh-gradient text-slate-800 dark:text-slate-100 overflow-hidden font-sans transition-colors duration-700 relative">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -275,7 +338,17 @@ const Dashboard = ({ user, onUserUpdate, onLogout }) => {
               exit={{ opacity: 0, y: -20, x: '-50%' }}
               className="absolute top-4 left-1/2 z-50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 px-6 py-3 shadow-2xl rounded-2xl min-w-[300px] text-center"
             >
-              <p className="font-bold text-sm">{globalError}</p>
+              <p className="font-bold text-sm whitespace-pre-wrap">{globalError}</p>
+            </motion.div>
+          )}
+          {globalSuccess && (
+            <motion.div 
+              initial={{ opacity: 0, y: -20, x: '-50%' }}
+              animate={{ opacity: 1, y: 0, x: '-50%' }}
+              exit={{ opacity: 0, y: -20, x: '-50%' }}
+              className="absolute top-4 left-1/2 z-50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-green-200 dark:border-green-900/50 text-green-700 dark:text-green-400 px-6 py-4 shadow-2xl rounded-2xl min-w-[300px] text-left"
+            >
+              <p className="font-bold text-sm whitespace-pre-wrap">{globalSuccess}</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -321,6 +394,79 @@ const Dashboard = ({ user, onUserUpdate, onLogout }) => {
                       <QueryPanel onAsk={handleAsk} isQuerying={isQuerying} disabled={datasets.length === 0} />
                       
                       <ExplanationPanel insights={insights} onDownload={handleDownloadReport} />
+                      
+                      <div className="glass-card p-6 mt-4">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+                          <div>
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center">
+                              <Database className="w-5 h-5 mr-2 text-indigo-500" />
+                              Business Intelligence
+                            </h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Export cleaned datasets and summaries for external BI tools.</p>
+                          </div>
+                          
+                          <div className="mt-4 md:mt-0 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl min-w-[220px]">
+                            <p className="text-xs font-bold text-green-800 dark:text-green-400 mb-2 uppercase tracking-wider">Export Compatibility</p>
+                            <div className="flex flex-col gap-1 text-xs text-green-700 dark:text-green-300">
+                              <span className="flex items-center gap-1"><Sparkles className="w-3 h-3" /> Microsoft Power BI Desktop</span>
+                              <span className="flex items-center gap-1"><Sparkles className="w-3 h-3" /> Microsoft Excel</span>
+                              <span className="flex items-center gap-1"><Sparkles className="w-3 h-3" /> Tableau</span>
+                              <span className="flex items-center gap-1"><Sparkles className="w-3 h-3" /> Python</span>
+                            </div>
+                            <p className="text-[10px] text-green-600 dark:text-green-500 mt-2 italic">Supports CSV exports for downstream Business Intelligence workflows.</p>
+                          </div>
+                        </div>
+                        
+                        {analyticsSummary && (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <StatCard
+                              icon={<Database className="w-4 h-4 text-indigo-500" />}
+                              label="Dataset"
+                              value={analyticsSummary["Dataset Name"] ?? 'N/A'}
+                              color="bg-indigo-100 dark:bg-indigo-900/30"
+                            />
+                            <StatCard
+                              icon={<FileText className="w-4 h-4 text-blue-500" />}
+                              label="Rows &amp; Columns"
+                              value={`${analyticsSummary["Total Rows"] ?? 0} Rows`}
+                              subtitle={`${analyticsSummary["Total Columns"] ?? 0} Columns`}
+                              color="bg-blue-100 dark:bg-blue-900/30"
+                            />
+                            <StatCard
+                              icon={<Clock className="w-4 h-4 text-amber-500" />}
+                              label="Data Quality"
+                              value={`${analyticsSummary["Missing Values"] ?? 0} Missing`}
+                              subtitle={`${analyticsSummary["Duplicate Rows"] ?? 0} Duplicates`}
+                              color="bg-amber-100 dark:bg-amber-900/30"
+                            />
+                            <StatCard
+                              icon={<Sparkles className="w-4 h-4 text-emerald-500" />}
+                              label="Status"
+                              value={(analyticsSummary["Processing Status"] ?? 'SUCCESS').toUpperCase()}
+                              subtitle="Ready for BI Export"
+                              color="bg-emerald-100 dark:bg-emerald-900/30"
+                            />
+                          </div>
+                        )}
+                        
+                        <div className="flex flex-wrap gap-4">
+                          <button 
+                            onClick={handleExportAnalytics}
+                            disabled={isExporting}
+                            className={`flex items-center px-4 py-2 ${isExporting ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'} text-white text-sm font-semibold rounded-xl transition-all shadow-md hover:shadow-lg`}
+                          >
+                            <Database className={`w-4 h-4 mr-2 ${isExporting ? 'animate-pulse' : ''}`} />
+                            {isExporting ? 'Exporting...' : 'Export Analytics Dataset'}
+                          </button>
+                          <button 
+                            onClick={handleDownloadSummary}
+                            className="flex items-center px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow-md"
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            Download Analytics Summary
+                          </button>
+                        </div>
+                      </div>
                       
                       <DatasetTable 
                         previewData={previewData} 
@@ -380,17 +526,20 @@ const Dashboard = ({ user, onUserUpdate, onLogout }) => {
   );
 };
 
-const StatCard = ({ icon, label, value, color }) => (
-  <motion.div 
+const StatCard = ({ icon, label, value, subtitle, color }) => (
+  <motion.div
     whileHover={{ y: -5 }}
     className="glass-card p-5 flex items-center space-x-4 border-white/60 dark:border-white/5"
   >
-    <div className={`p-3 rounded-2xl ${color} shadow-sm group-hover:scale-110 transition-transform`}>
+    <div className={`p-3 rounded-2xl ${color} shadow-sm transition-transform flex-shrink-0`}>
       {icon}
     </div>
-    <div>
-      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-tight">{label}</p>
-      <p className="text-sm font-bold text-slate-800 dark:text-white truncate max-w-[150px]">{value}</p>
+    <div className="min-w-0">
+      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-tight mb-0.5">{label}</p>
+      <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{value}</p>
+      {subtitle && (
+        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{subtitle}</p>
+      )}
     </div>
   </motion.div>
 );

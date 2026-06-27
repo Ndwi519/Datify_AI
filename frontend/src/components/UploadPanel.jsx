@@ -11,7 +11,7 @@ const UploadPanel = ({ onUpload, isUploading, datasets, onClear, onDeleteFile })
       }
     },
     accept: { 'text/csv': ['.csv'] },
-    multiple: true
+    multiple: false
   });
 
   return (
