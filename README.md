@@ -124,7 +124,7 @@ Datify_AI/
 
 ---
 
-# 🛠 Tech Stack
+#  Tech Stack
 
 | Layer                 | Technologies                        |
 | --------------------- | ----------------------------------- |
@@ -138,7 +138,7 @@ Datify_AI/
 
 ---
 
-# ⚙️ Prerequisites
+# Prerequisites
 
 * Python 3.9+
 * Node.js 18+
@@ -146,7 +146,7 @@ Datify_AI/
 
 ---
 
-# 🚀 Installation
+#  Installation
 
 ## 1. Clone the Repository
 
